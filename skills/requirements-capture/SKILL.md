@@ -196,8 +196,8 @@ only the timing moves.
 
 ## Downstream: how requirements gate later phases
 
-The requirements document is not filed and forgotten. It is the baseline for
-both review gates.
+The requirements document is not filed and forgotten. It has three downstream
+consumers, and they use it differently.
 
 ### Design Review Gate
 
@@ -224,6 +224,34 @@ The Scope & Alignment reviewer gets the requirements document as its baseline,
 so "no scope creep" becomes measurable against something instead of being a
 judgement call.
 
+### Acceptance Gate (the valuable use)
+
+The two gates above use this document as a **fence** — "is this finding in
+scope?" That is the cheap use.
+
+The expensive use is as an **oracle**. The `## What the user sees` examples,
+the `## Behaviour` grammar, the `## Constraints` invariants, and the
+`## Done when` criteria together are a UAT script. The `acceptance-gate` skill
+walks them against a running system and quotes the observed output for each
+item.
+
+This is why the document demands **literal rendered examples** rather than
+descriptions, and **independently observable** Done-when items rather than
+intent. A vague requirements document is unverifiable, and an unverifiable
+document means acceptance degrades into a second code review — the outcome this
+whole phase exists to prevent.
+
+Two consequences when you write the document:
+
+- Every "never does X" you state will be **actively probed** by attempting the
+  violation. State invariants you can test, not aspirations you cannot.
+- Every flagged-issue default the human accepts becomes a **verified behaviour
+  commitment**, not just a recorded decision. Defaults need to be things that
+  are observable.
+
+If acceptance later turns out to be expensive or ambiguous, the defect is here —
+an underspecified document — not in the acceptance reviewer's effort.
+
 ---
 
 ## Anti-patterns
@@ -249,6 +277,10 @@ judgement call.
 - **`plan-review-gate`** — validates the plan's scope *against* requirements.
 - **`orchestrated-execution`** — implements the plan. Requirements feed the
   DoD items.
+- **`acceptance-gate`** — verifies the running system *against* requirements
+  after the final comprehensive review. The document's literal examples,
+  grammar, invariants, and Done-when list are its checklist.
 
 Order: brainstorm → **requirements capture** → human approval → design →
-design gate → plan → plan gate → execution.
+design gate → plan → plan gate → execution → **acceptance gate** →
+self-reflect → PR.

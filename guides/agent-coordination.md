@@ -123,7 +123,8 @@ The Issue Orchestrator creates an issue-level team and spawns specialist agents:
 3. Direct handoff: researcher completes, sends findings to `architect` directly
 4. Persistent coder: retains context across work units (no cold start between WU-001 and WU-002)
 5. Persistent shepherd: stays alive through the PR lifecycle, sends async status updates
-6. Graceful shutdown: `shutdown_request` to all teammates, then `TeamDelete`
+6. Acceptance: spawn a **fresh** `qa-agent` (never a teammate) to verify the running system against the requirements document
+7. Graceful shutdown: `shutdown_request` to all teammates, then `TeamDelete`
 
 ### Design Review as Review Team
 

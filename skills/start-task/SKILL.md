@@ -166,15 +166,16 @@ When the task has a spec with Definition of Done items, use the orchestrated exe
 2. **Plan Review Gate (BLOCKING)** — submit plan to adversarial review (3 reviewers: Feasibility, Completeness, Scope & Alignment must all PASS). This gate is MANDATORY — do NOT present the plan to the user or begin implementation until all 3 reviewers PASS. See `skills/plan-review-gate/SKILL.md`
 3. **Execute** the 4-phase loop per work unit: IMPLEMENT → VALIDATE → ADVERSARIAL REVIEW → COMMIT
 4. **Final review** after all work units: cross-unit integration check
-5. **Self-reflect**: Run `/self-reflect` to extract learnings, then commit knowledge base updates
-6. **Create PR** — knowledge base changes are included in the PR
+5. **Acceptance Gate (BLOCKING)** — spawn a fresh `qa-agent` to verify the running system against the frozen requirements document. Construction review cannot tell you whether the operator got what they approved. Verdict must be ACCEPTED. See `skills/acceptance-gate/SKILL.md`
+6. **Self-reflect**: Run `/self-reflect` to extract learnings, then commit knowledge base updates
+7. **Create PR** — knowledge base changes are included in the PR
 
 See the `orchestrated-execution` skill for the full pattern. Key principles:
 - **Trust nothing, verify everything**: Run quality gates independently, never trust subagent self-reports
 - **Adversarial review**: Fresh reviewer checks each DoD item with file:line evidence
 - **Human checkpoints**: Pause at planned review points before continuing
 - **Recovery**: Max 3 retries per work unit, then escalate with failure history
-- **No shortcuts**: NEVER use `--no-verify` on commits, NEVER skip coverage gates, NEVER self-certify
+- **No shortcuts**: NEVER use `--no-verify` on commits, NEVER skip coverage gates, NEVER skip acceptance, NEVER self-certify
 
 #### Multi-Agent Orchestration (for large features)
 

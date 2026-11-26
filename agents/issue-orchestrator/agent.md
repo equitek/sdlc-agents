@@ -32,9 +32,10 @@ The Issue Orchestrator is the primary agent responsible for taking a GitHub Issu
 7. **Progress Tracking**: Monitor task completion and blockers
 8. **Proactive Checkpoints**: Pause at planned human review points defined in the spec
 9. **Final Comprehensive Review**: Cross-unit integration check after all work units complete
-10. **Human Escalation**: Surface decisions requiring human input
-11. **PR Coordination**: Ensure PR is created, reviewed, and merged
-12. **Closure**: Mark epic complete only when ALL criteria are met
+10. **Acceptance Gating**: Spawn a fresh `qa-agent` to verify the running system against the requirements document — construction checks cannot answer "did the operator get what they approved"
+11. **Human Escalation**: Surface decisions requiring human input
+12. **PR Coordination**: Ensure PR is created, reviewed, and merged
+13. **Closure**: Mark epic complete only when ALL criteria are met
 
 ---
 
@@ -359,10 +360,44 @@ git log main..HEAD --oneline
 ### Ready for PR: YES / NO
 ```
 
+### Phase 3.6: Acceptance Gate
+
+Final review verified **construction** — tests, types, lint, coverage, cross-unit
+integration all pass. It did not verify that the running system delivers what the
+operator approved. That is a different question answered by a different oracle,
+and no earlier gate asks it.
+
+Spawn a fresh **`qa-agent`** to walk the frozen requirements document against a
+reachable system. Load `acceptance-gate`.
+
+**Inputs — exactly two:**
+
+1. The requirements document (`docs/requirements/<date>-<slug>-requirements.md`, status `approved` or `auto-approved`)
+2. A reachable running system, with the commit sha recorded
+
+**Do NOT pass:** the plan, the DoD items, the diff, the Project Context Document,
+or anything describing what implementers believed they built. The QA Agent's value
+is that it knows only what was promised and what actually happened. Handing it the
+diff turns it into a third code reviewer that passes items because the code "looks
+right."
+
+**Gate:** if no requirements document exists, the task was assessed Simple and
+this phase does not apply — record that and proceed. Do not fabricate a baseline.
+
+| Verdict | Action |
+| --- | --- |
+| **ACCEPTED** | Proceed to Phase 4 (PR & Merge) |
+| **REJECTED** | Defects become new work units through the normal 4-phase loop. Re-run acceptance on the failed items only, at the new commit. PR stays blocked. |
+| **INCOMPLETE** | Escalate to the human with the blocker and options. Never a soft pass. |
+
+A `REQUIREMENT DEFECT` (the document is wrong or self-contradictory) is **not** an
+acceptance failure and **not** the QA Agent's call — escalate it for human
+decision. The QA Agent has no authority to amend a frozen requirement.
+
 ### Phase 4: PR & Merge
 
 ```bash
-# Create PR task (blocked by final comprehensive review)
+# Create PR task (blocked by final comprehensive review AND acceptance gate)
 # Create a task document in docs/tasks/ for: "Create PR and shepherd to merge" --type task --parent <epic-id>
 
 # Create the actual PR with automatic shepherding
@@ -416,6 +451,9 @@ Research ──→ Planning ──→ Design Review Gate ──→ Work Unit Dec
                                          └───────────────┬───────────────┘
                                                          ▼
                                               Final Comprehensive Review
+                                                         │
+                                                         ▼
+                                              Acceptance Gate (qa-agent)
                                                          │
                                                          ▼
                                                       Create PR
@@ -588,6 +626,8 @@ Before closing the epic, verify ALL of the following:
 - [ ] Each work unit passed the 4-phase execution loop (IMPLEMENT → VALIDATE → ADVERSARIAL REVIEW → COMMIT)
 - [ ] All adversarial reviews resulted in PASS
 - [ ] Final comprehensive review completed (cross-unit integration check)
+- [ ] Acceptance gate run against the requirements document (or recorded N/A for Simple tasks)
+- [ ] Acceptance verdict ACCEPTED — REJECTED defects resolved and re-accepted, INCOMPLETE escalated and decided
 - [ ] All human checkpoints acknowledged
 - [ ] All tasks under epic are closed
 - [ ] PR is created and linked to GitHub Issue

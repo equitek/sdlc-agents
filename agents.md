@@ -34,6 +34,7 @@ for the full 4-phase loop: IMPLEMENT → VALIDATE → ADVERSARIAL REVIEW → COM
 | `design-review-gate` | Parallel 5-agent design review |
 | `orchestrated-execution` | 4-phase execution loop per work unit |
 | `plan-review-gate` | Adversarial plan review (3 reviewers must PASS) |
+| `acceptance-gate` | Verify the running system against the requirements document |
 | `create-issue` | Create a well-structured GitHub Issue |
 | `external-tools` / `external-tools-health` | Delegate to Codex/Gemini CLIs; cross-model review |
 | `handling-pr-comments` | Handle PR review comments |
@@ -48,7 +49,7 @@ for the full 4-phase loop: IMPLEMENT → VALIDATE → ADVERSARIAL REVIEW → COM
 
 ## Agents
 
-20 specialized agents live in `agents/`. Each is a self-contained role
+21 specialized agents live in `agents/`. Each is a self-contained role
 definition with its own scope, inputs, outputs, and quality bar. The
 `issue-orchestrator` coordinates them for a single issue; the
 `swarm-coordinator` runs several issues in parallel. Rubrics that agents cite
@@ -66,6 +67,10 @@ live in `rubrics/`; the multi-agent coordination protocol lives in
 - **Requirements Baseline**: Written before design, reviewed by the human
   (~2 min), then frozen. User-facing behaviour only. It is the baseline both
   review gates measure scope against. Load `requirements-capture`.
+- **Acceptance Gate**: After the final comprehensive review, a fresh `qa-agent`
+  verifies the *running system* against the frozen requirements document — item
+  by item, with quoted output as evidence. It never reads the diff. Verdicts are
+  ACCEPTED / REJECTED / INCOMPLETE. Load `acceptance-gate`.
 - **Coverage Gate**: Reads `.coverage-thresholds.json` and runs the
   enforcement command — BLOCKING gate before PR creation.
 
@@ -78,7 +83,8 @@ orchestration pipeline is followed regardless of which skill initiated the work.
 ```
 [complex tasks only] requirements capture -> HUMAN APPROVES (the only doc
   they read) -> freeze -> brainstorm? -> design -> Design Review Gate
-  -> plan -> Plan Review Gate -> execution -> self-reflect -> PR
+  -> plan -> Plan Review Gate -> execution -> final review
+  -> ACCEPTANCE GATE -> self-reflect -> PR
 ```
 
 - **Complex tasks only — before design**: WRITE the requirements document
@@ -115,6 +121,13 @@ orchestration pipeline is followed regardless of which skill initiated the work.
 - **Context recovery**: Approved plans, project context, and execution
   state persist to disk. If context is lost mid-execution, reload from
   the persisted plan and execution-state files.
+- **Before self-reflect**: RUN the `acceptance-gate` on any task that has a
+  requirements document. A fresh `qa-agent` — not the implementer, not the
+  orchestrator — walks every requirement item against a reachable running
+  system and quotes the observed output. Do NOT hand it the diff, the plan, or
+  the DoD items. REJECTED returns defects to implementation as normal work
+  units; INCOMPLETE goes to the human with the blocker. The PR is not marked
+  ready until the verdict is ACCEPTED.
 - **Diagnose before implementing**: For complex tasks (multi-file, non-obvious
   behavior, performance issues, anything where the root cause is unclear), add
   debug/logging statements or diagnostic tests first to confirm your

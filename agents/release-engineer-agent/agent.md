@@ -42,7 +42,7 @@ The Release Engineer Agent is the single point of accountability for the "last m
 
 Triggered when:
 
-- QA Agent gives formal PR approval (all pre-merge checks pass)
+- QA Agent (`qa-agent`) confirms the PR passed the acceptance gate (ACCEPTED verdict) and/or post-deploy verification (VERIFIED)
 - PR Shepherd detects merge readiness
 - Issue Orchestrator advances lifecycle to MERGE stage
 - Emergency: deploy failure or post-deploy QA failure detected
@@ -219,7 +219,8 @@ gh issue edit <issue-number> --remove-label "lifecycle:merge" --add-label "lifec
 
 ### Step 7: Post-Deploy Verification
 
-Coordinate with QA Agent for production verification:
+Coordinate with the **`qa-agent`** for production verification (its post-deploy
+pass — narrower than the pre-PR acceptance gate):
 
 ```bash
 # Notify QA Agent that deploy is complete
@@ -351,7 +352,7 @@ When merge freeze is active and PRs are waiting:
 | Agent | Interaction |
 |-------|-------------|
 | **Coder Agent** | Receives merge-ready signal; Release Engineer takes over merge execution |
-| **QA Agent** | Coordinates post-deploy verification; QA runs smoke tests, RE monitors soak |
+| **QA Agent** (`qa-agent`) | Owns acceptance verification. Re-verifies the changed requirements post-deploy; supplies evidence, RE decides rollback |
 | **PR Shepherd** | Hands off when PR reaches merge readiness; Release Engineer takes over |
 | **Chief of Staff** | RE notifies CoS of merge freeze, deploy status, release completion |
 | **Product Manager** | PM gives merge go-ahead; RE executes. PM makes rollback vs. hotfix decisions |

@@ -712,6 +712,46 @@ git log main..HEAD --oneline
 ### Ready for PR: YES / NO
 ```
 
+## 8.4. Acceptance Gate (MANDATORY before knowledge capture)
+
+After the final comprehensive review passes but BEFORE `self-reflect`, run the
+**Acceptance Gate** if a requirements document exists for this work.
+
+Final review verifies construction: tests, types, lint, coverage, cross-unit
+integration. It does not verify that the running system delivers what the
+operator approved. That is a different question with a different oracle, and
+nothing else in the pipeline asks it.
+
+```text
+## Acceptance Gate
+
+Final review PASSED. Running acceptance against the requirements baseline...
+
+/acceptance docs/requirements/<date>-<slug>-requirements.md
+
+Verdict: ACCEPTED | REJECTED | INCOMPLETE
+```
+
+**Rules:**
+
+- **Gated by the artifact.** A requirements document exists → run the gate. No
+  document → the task was Simple and there is nothing to verify. Do not invent
+  a baseline to justify skipping; do not invent a UAT pass for a bug fix.
+- **Fresh reviewer.** Spawn the `qa-agent` as a new instance. Do NOT hand it the
+  plan, the DoD items, the diff, or the project context document. Its only
+  inputs are the requirements document and a reachable system.
+- **REJECTED** → defects become new work units through the normal 4-phase loop.
+  The implementer does not skip adversarial review because acceptance found the
+  defect; acceptance found it by using the product, the fix still meets its
+  contract. Re-run acceptance on the failed items only, at the new commit.
+- **INCOMPLETE** → escalate to the human with the blocker and options. Never
+  treat it as a soft pass.
+- **ACCEPTED** → proceed to 8.5 knowledge capture, then PR.
+
+The PR is not marked ready until the verdict is ACCEPTED. See
+`skills/acceptance-gate/SKILL.md` and `rubrics/acceptance-review-rubric.md`.
+
+---
 ---
 
 ## 8.5. Pre-PR Knowledge Capture (MANDATORY)

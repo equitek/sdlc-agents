@@ -4,8 +4,8 @@ A multi-agent software development process you can drop into any project.
 
 This repo is the process itself, extracted from a working project so it can be
 reused across many. It contains no product code. It defines **who does what,
-in which order, and what has to be true before work is called done** — as 20
-agent role definitions, 20 skills that the agents and humans invoke, and the
+in which order, and what has to be true before work is called done** — as 21
+agent role definitions, 21 skills that the agents and humans invoke, and the
 review rubrics that make the quality gates objective.
 
 ## Why a process repo
@@ -42,7 +42,8 @@ then triaged against it rather than absorbed into it. See
 ```
 [complex tasks only] requirements capture -> HUMAN APPROVES -> freeze
   -> brainstorm? -> design -> Design Review Gate
-  -> plan -> Plan Review Gate -> execution -> self-reflect -> PR
+  -> plan -> Plan Review Gate -> execution -> final comprehensive review
+  -> ACCEPTANCE GATE -> self-reflect -> PR
 ```
 
 Simple tasks — bug fixes, single-file changes, copy edits, config tweaks —
@@ -57,6 +58,7 @@ the same over-process this pipeline exists to prevent, pointed the other way.
 | Design Review Gate | Planning starts before 5 agents approve the design | `design-review-gate` |
 | Plan Review Gate | The plan is shown to the user before 3 reviewers PASS | `plan-review-gate` |
 | Adversarial review | A work unit commits without independent verification | `orchestrated-execution` |
+| Acceptance Gate | A PR is marked ready before the running system was checked against the requirements document | `acceptance-gate` |
 | Coverage Gate | A PR opens below the project's coverage threshold | `setup` |
 
 Every gate names who decides, what evidence is required, and what happens on
@@ -77,12 +79,32 @@ against `file:line` evidence. A unit that fails review is sent back with the
 failure history, up to three times, then escalated to a human with what was
 tried.
 
+### Verification, not just validation
+
+The Design Review Gate, the Plan Review Gate, and adversarial review all check
+**construction** — they read artifacts: a design doc, a plan, a diff. Each
+answers "was this built as specified?"
+
+The **Acceptance Gate** is the only gate that runs the product, and the only one
+that answers "did the operator get what they approved?" A fresh `qa-agent` takes
+exactly two inputs — the frozen requirements document and a reachable system —
+and walks every requirement item, quoting the observed output as evidence.
+
+It deliberately **never reads the diff**. An acceptance reviewer that reads the
+implementation stops being a user and becomes a third code reviewer, and will
+start passing items because the code "looks right." The gate's whole value is
+that it knows only what was promised and what actually happened.
+
+It is cheap because `requirements-capture` already forced literal rendered
+examples, numbered acceptance criteria, and explicit negative constraints. That
+is a UAT script; this gate walks it.
+
 ## Layout
 
 ```
-agents/          20 role definitions — scope, inputs, outputs, quality bar
-skills/          20 skills — the procedures agents and humans invoke
-rubrics/         5 review rubrics — what "PASS" means, per gate
+agents/          21 role definitions — scope, inputs, outputs, quality bar
+skills/          21 skills — the procedures agents and humans invoke
+rubrics/         6 review rubrics — what "PASS" means, per gate
 guides/          multi-agent coordination protocol
 references/      per-platform tool mappings (Claude Code, Codex, Gemini, OpenCode)
 AGENTS.md        the workflow contract — read this first
