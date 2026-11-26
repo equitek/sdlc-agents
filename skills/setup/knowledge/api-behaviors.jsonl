@@ -1,0 +1,3 @@
+# Schema: api-behaviors.jsonl - External API quirks and behaviors
+# Each line is a JSON object with: id, type, fact, recommendation, confidence, provenance[], tags[], affectedFiles[], affectedServices[], createdAt, updatedAt, usageCount, helpfulCount, outdatedReports
+# Example entry:

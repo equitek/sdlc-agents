@@ -1,0 +1,3 @@
+# Schema: codebase-facts.jsonl - Facts about how the code works
+# Each line is a JSON object with: id, type, fact, recommendation, confidence, provenance[], tags[], affectedFiles[], affectedServices[], createdAt, updatedAt, usageCount, helpfulCount, outdatedReports
+# Example entry:

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+*.db
+.env
+.env.local
+.env.*.local
+!.env.example
+.DS_Store
+*.log
+
+# Execution state (working files for context recovery)
+docs/context/
+docs/plans/
+docs/temp/

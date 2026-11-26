@@ -1,0 +1,12 @@
+.DS_Store
+
+# Editor / OS noise
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local scratch space the process uses for logs, downloads, and temp state
+/tmp/
+*.log
