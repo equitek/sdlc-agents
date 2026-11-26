@@ -133,6 +133,61 @@ re-run acceptance on items 3 and 8.3 only at the new commit. Items 1, 2, 4-7,
 8.1, 8.2, 8.4 were observed satisfied at this commit and need no re-verification.
 ```
 
+## Variant: one item waived
+
+Same fixture, but the requirements document carries a waiver — the operator
+approved it at requirements time, because "stays responsive with 10k-message
+tabs" is long-duration behaviour an agent cannot observe.
+
+```markdown
+**Waivers**: 1 of 5 (Done when #5)
+
+## Done when
+
+5. **WAIVED (2026-03-04, Mighty)** — "Stays responsive with 10k-message tabs."
+   Unobservable by an agent (long-duration interactive performance).
+   **Substitute**: `bench/last-seek.sh` — must exit 0 under 100ms budget.
+```
+
+The reviewer does **not** skip item 5 — it verifies the substitute and reports
+the substitute's result:
+
+```
+$ ./bench/last-seek.sh
+lines=10000 elapsed_ms=18 last=[a message number 9999]
+PASS: within 100ms budget
+exit=0
+```
+
+```markdown
+| 11 | Done when | 5. Stays responsive with 10k-message tabs | WAIVED | substitute
+`bench/last-seek.sh` exit 0; 18ms mean over 10k lines (budget 100ms) |
+
+### Verdict: REJECTED   (still — item 3's defect is unfixed)
+
+**Waived**: 1 of 11 (Done when #5, substitute verified)
+```
+
+Note what did **not** happen: the waiver did not soften the verdict, and it did
+not reduce the item count. Item 5 still appears in the coverage table with a
+verdict and a result. A waiver redirects the check; it does not delete it. Had
+the whole run passed, the verdict would have been **ACCEPTED (with waivers)**.
+
+### The three branches of waiver handling
+
+Each was exercised against the fixture:
+
+| Case | Fixture manipulation | Correct outcome |
+| --- | --- | --- |
+| Substitute **fails** | Shrink the benchmark budget to 1ms → exit 1 | Item **FAIL** — the waiver was granted on condition the substitute holds |
+| Waiver names **no substitute** | Delete the `**Substitute**` line | **REQUIREMENT DEFECT** (invalid waiver) + item **UNVERIFIABLE** |
+| Environment **unreachable** | Point state at a nonexistent directory | **INCOMPLETE** — a blocker, never a waiver |
+
+The second two are the ones that matter. A waiver with no substitute is an
+unchecked promise wearing a waiver's clothes, and an unreachable environment is a
+solvable blocker dressed as an impossibility. Both look like "acceptance isn't
+possible here" from inside a long session. Neither is.
+
 ## What the example demonstrates
 
 | Rule | How this run honoured it |
@@ -145,6 +200,8 @@ re-run acceptance on items 3 and 8.3 only at the new commit. Items 1, 2, 4-7,
 | One observation, one item | Items 3 and 8.3 marked as two expressions of one defect, not two independent findings |
 | No scope creep | `/last b extra` behaviour stayed an Observation, never a FAIL |
 | No iteration loop | Reported the defect and stopped; re-acceptance is scoped to failed items |
+| Waivers are checked, not skipped | The waived item still carries a verdict and a substitute result |
+| A blocker is never a waiver | An unreachable environment would be INCOMPLETE, not WAIVED |
 
 ## The cost
 

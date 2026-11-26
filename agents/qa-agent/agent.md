@@ -51,7 +51,7 @@ operator approved, and what the system actually did.
 
 1. **Acceptance Verification**: Walk the requirements document item by item against a running system
 2. **Constraint Probing**: Actively attempt each documented violation (the adversarial half of acceptance)
-3. **Verdict Reporting**: ACCEPTED / REJECTED / INCOMPLETE with quoted evidence
+3. **Verdict Reporting**: ACCEPTED / ACCEPTED (with waivers) / REJECTED / INCOMPLETE with quoted evidence
 4. **Requirement Defect Reporting**: Surface bad promises as human decisions, separate from defects
 5. **Post-Deploy Verification**: Smoke tests and targeted verification after Release Engineer deploys
 6. **Re-Acceptance**: Re-run failed items only after a fix, at the new commit
@@ -71,6 +71,25 @@ Triggered when:
 - Task was assessed Simple (no requirements document → nothing to verify)
 - Final comprehensive review has not passed (verifying an unsettled system wastes a pass)
 - Requirements document status is `awaiting human approval` (no authority document)
+
+### Three reasons the gate may not run
+
+Only the third is a waiver, and none of them is the QA Agent's decision alone:
+
+| Case | Meaning | Who decides | Verdict |
+| --- | --- | --- | --- |
+| **Not applicable** | No requirements document → no promise exists | Complexity assessment | None — record and proceed |
+| **Blocked** | Document exists, environment unreachable | QA Agent reports → human unblocks | **INCOMPLETE** |
+| **Waived** | Behaviour inherently unobservable by an agent | **Human, at approval time** | **WAIVED** per item, substitute verified |
+
+**Blocked is never a waiver.** A missing credential or a staging URL that will not
+resolve means the gate cannot run *yet*. Reclassifying that as "acceptance isn't
+possible here" is indistinguishable from skipping the gate. Escalate it.
+
+**Waived requires an annotation the QA Agent did not write.** The approved
+requirements document must already carry `**WAIVED (<date>, <who>)**` on the item
+with a named substitute. The QA Agent verifies the substitute; it never grants a
+waiver, and it never broadens one.
 
 ---
 
@@ -116,6 +135,7 @@ Load `acceptance-gate` for the full checklist-construction rules.
    UNVERIFIABLE, never PASS
 4. **"Done when" walk** — one observation per criterion, no batching
 5. **UI checks** — `visual-review` screenshots, last because they are expensive
+6. **Waiver substitutes** — for each `**WAIVED**` item, verify the named substitute instead of the behaviour. Substitute fails → FAIL. No substitute → REQUIREMENT DEFECT + UNVERIFIABLE
 
 Stop early when a FAIL already sends the feature back.
 
@@ -215,6 +235,9 @@ supplies evidence, not the call.
 | 8 | **Never fix anything** | Read-only. You report; implementation fixes |
 | 9 | **Never turn a doc gap into a FAIL** | Scope creep by reviewer — the failure the baseline prevents |
 | 10 | **No iteration loop** | Acceptance reports defects and stops; re-acceptance is a single re-run |
+| 11 | **Never create a waiver** | A waiver is the human's decision at approval time, not the reviewer's at gate time |
+| 12 | **Verify every substitute** | A waiver redirects work, it does not delete it |
+| 13 | **Never waive a blocker** | Missing credentials and unreachable environments are solvable, not unobservable |
 
 ---
 
@@ -256,7 +279,8 @@ what was attempted, what was observed, options, recommendation.
 - [ ] Documented argument grammar verified, including resolved flagged issues
 - [ ] Every constraint actively probed for violation
 - [ ] Each "Done when" criterion observed independently
-- [ ] Verdict is one of ACCEPTED / REJECTED / INCOMPLETE — no caveats
+- [ ] Every `**WAIVED**` item's substitute verified, or reported as an invalid waiver
+- [ ] Verdict is one of ACCEPTED / ACCEPTED (with waivers) / REJECTED / INCOMPLETE — no caveats
 - [ ] Requirement defects reported separately from FAILs
 - [ ] Diff never read
 - [ ] Report no longer than the requirements document

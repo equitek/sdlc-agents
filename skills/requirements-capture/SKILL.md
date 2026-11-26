@@ -90,6 +90,7 @@ operator's request
       ↓
 [2] HUMAN APPROVAL — the ONLY document the human must read (~2 min)
       ↓  (optional in a highly automated setting — see "Automated mode")
+      ↓  waivers for unobservable items are proposed and granted HERE
 [3] FREEZE — record approval in the doc header
       ↓
 design phase (agents only) → plan phase (agents only) → execution
@@ -128,12 +129,65 @@ Write the document. Keep it short — a page or two. Sections:
 <facts the design should not have to rediscover — explicitly NOT requirements>
 ```
 
+Header also records the waiver count, if any: `**Waivers**: 1 of 5 (Done when #2)`.
+See "Waivers" below for when that is legitimate.
+
 ### Step 2: Human approval
 
 This is the point of the whole exercise: **one short document the human reads,
 instead of a design document they would skip.**
 
 Present it with a **flagged-issues block** (see below), not a wall of text.
+
+### Step 2.5: Waivers — decide at approval time, never later
+
+Before you present the document for approval, identify any item an agent
+**cannot observe at all**, and propose it as a waiver in the flagged-issues block
+alongside everything else.
+
+This is the only moment a waiver can be created. At acceptance time there is a
+finished feature, sunk cost, and an agent that would like to be done — the
+decision must precede the incentive to make it.
+
+What qualifies (the behaviour is unobservable regardless of environment):
+
+| Category | Example |
+| --- | --- |
+| Physical world | Print output, LED state, hardware button, sensor reading |
+| Third-party system | App Store review, bank settlement, a vendor's UI |
+| Long duration | "stays up 30 days", "no memory growth over a week" |
+| Human judgement | "the wording reads well", "the chart is legible" |
+| Legal / compliance | Signature, regulatory filing, licence click-through |
+| Destructive at scale | "survives loss of a production replica" |
+
+What does **not** qualify — these are blockers, not impossibilities, and treating
+them as waivers is how the gate becomes a formality:
+
+- No staging URL or credentials right now → the environment is the problem
+- "Only observable in production" → point the agent at production
+- "Expensive to test" → negotiate the substitute instead
+- "Too slow to run the full suite" → run the full suite
+
+Every waiver must name a **substitute** — the evidence that stands in for the
+observation:
+
+```markdown
+2. **WAIVED (2026-03-04, Mighty)** — "Stays responsive with 10k-message tabs."
+   Unobservable by an agent (long-duration interactive performance).
+   **Substitute**: `bench/last-seek.sh` in CI; human spot-check post-merge.
+```
+
+A waiver with no substitute is not a waiver — it is an unchecked promise wearing
+a waiver's clothes. Present it that way to the human: the choice is between
+naming a substitute and dropping the requirement.
+
+**Do not waive the whole document.** If every item is unobservable, the task
+should not have a requirements document; report an assessment defect and route
+to the Simple path instead.
+
+Waived items are listed in the PR description with reason and substitute — same
+principle as auto-approved defaults. The human sees the decision after the fact
+even if they did not examine it before.
 
 ### Step 3: Freeze
 
@@ -162,6 +216,19 @@ Format — one line per issue, the decision, and a default:
 
 Reply with corrections, or "defaults" to accept all three.
 ```
+
+Waivers belong in this same block — they are a decision the human makes, with a
+recommended default like everything else:
+
+```markdown
+4. **Waive "stays responsive with 10k-message tabs"?** An agent cannot observe
+   long-duration interactive performance. Default: waive to
+   `bench/last-seek.sh` in CI plus a post-merge human spot-check.
+```
+
+Never present a waiver without a named substitute. "Waive it, we can't test it"
+is not a proposal — it is asking the human to do design work you were supposed to
+do.
 
 Rules for this block:
 

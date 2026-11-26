@@ -99,6 +99,28 @@ It is cheap because `requirements-capture` already forced literal rendered
 examples, numbered acceptance criteria, and explicit negative constraints. That
 is a UAT script; this gate walks it.
 
+### When acceptance is impossible
+
+Some behaviour simply cannot be observed by an agent: physical output, another
+company's system, thirty-day uptime, whether prose reads well. Forcing a check
+there produces a gate that gets quietly ignored on exactly the task types where
+it cannot run — so those items can be **waived**, under rules that keep the
+waiver from becoming a skip:
+
+- **Granted by the human at requirements approval, never by an agent at gate
+  time.** At gate time there is sunk cost and an agent that wants to be done.
+- **Per item, never per gate.** One unobservable item does not waive the other
+  sixteen; all-waived means the task was mis-assessed and needs no requirements
+  document at all.
+- **A substitute, not an absence.** Every waiver names the evidence that stands
+  in — a benchmark, a human post-merge checklist, a production signal — and the
+  reviewer verifies it.
+
+The distinction that does the real work: **a blocker is not a waiver.** Missing
+credentials, an unreachable staging URL, a service that will not start — those
+make the gate *INCOMPLETE*, a question for the human, not a bypass. Only genuine
+unobservability is waivable.
+
 ## Layout
 
 ```

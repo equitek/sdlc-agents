@@ -42,19 +42,100 @@ The fence is the cheap use. The oracle is the valuable one.
 
 ---
 
-## When this gate runs
+## When this gate does not run — three distinct cases
 
-| Task assessment | Acceptance gate? |
-| --- | --- |
-| Complex — requirements document exists | **Yes, mandatory** |
-| Simple — no requirements document | No — nothing to verify against |
+These get conflated constantly, and only one of them is a waiver. Keeping them
+apart is most of what makes the gate trustworthy.
 
-**The gate is gated by the artifact, not by confidence.** If a requirements
-document exists with status `approved` or `auto-approved`, run the gate. If one
-does not exist, the task was assessed Simple and there is no promise to check.
+| Case | What it means | Decided by | Recorded |
+| --- | --- | --- | --- |
+| **Not applicable** | No requirements document → Simple task, no promise exists | Complexity assessment (`start-task`) | Nowhere — nothing was promised |
+| **Blocked** | Document exists, behaviour verifiable, environment not reachable | Reviewer, at gate time → **INCOMPLETE** | Escalation; human decides how to unblock |
+| **Waived** | Behaviour is **inherently unobservable by an agent**, ever | **Human, at approval time** | Requirements document + PR description |
+
+### Not applicable
+
+No requirements document, no gate. The task was assessed Simple at `start-task`
+and there is no promise to verify. Record it and move on. Do not manufacture a
+UAT pass for a one-line fix.
+
+### Blocked is not a waiver
+
+A missing credential, a staging URL that will not resolve, a service the agent
+cannot start — none of these are reasons to waive the gate. They are reasons the
+gate cannot run *yet*. The verdict is **INCOMPLETE**, which puts a question to
+the human; it does not reach a conclusion.
+
+**The failure mode to avoid:** an agent near the end of a long task hits an
+environment blocker, reclassifies it as "acceptance isn't possible here," and
+waves the gate through. That is indistinguishable from skipping the gate.
+Environment problems get solved (someone supplies a URL) or escalated. They are
+never waived.
+
+### Waived — decided in advance, by the human, per item
+
+A waiver is warranted when the behaviour **cannot be observed by an agent at
+all**, regardless of environment. Not "hard to observe." Not "observable only in
+production" — a QA agent can be pointed at production. Truly unobservable:
+
+| Category | Example | Why an agent cannot |
+| --- | --- | --- |
+| Physical world | Print output, LED state, hardware button, sensor reading | No physical presence |
+| Third-party system | App Store review, bank settlement, a vendor's UI | Cannot drive someone else's system |
+| Long-duration | "stays up 30 days", "no memory growth over a week" | Task completes in minutes |
+| Human judgement | "the wording reads well", "the chart is legible" | Not a mechanical property |
+| Legal / compliance | Signature, regulatory filing, licence click-through | Requires an accountable human |
+| Destructive at scale | "survives loss of a production replica" | Cannot ethically or practically trigger |
+
+#### The four rules of a waiver
+
+All four must hold. Any one missing means it is not a waiver.
+
+1. **Granted at approval time, never at gate time.** The human marks items
+   waived when they approve the requirements document — before any
+   implementation effort exists. At gate time there is sunk cost, a finished
+   feature, and an agent that would like to be done. The decision must precede
+   the incentive to make it.
+2. **Per item, never per gate.** One unobservable item does not waive the other
+   sixteen. If every item is waived, that is not a gate decision — it is a sign
+   the task was mis-assessed and should never have had a requirements document.
+   Report that as an assessment defect instead.
+3. **A waiver is a substitute, not an absence.** Every waived item names the
+   evidence that *does* stand in for it: an accepted unit test, a human
+   post-merge checklist, a staging-only probe, a monitored production signal. A
+   waived item with no named substitute is not a waiver — it is an unchecked
+   promise wearing a waiver's clothes.
+4. **The substitute is verified at gate time.** The reviewer confirms the named
+   evidence exists and passes. A waiver redirects the work; it does not delete
+   it.
+
+#### Recording a waiver
+
+In the requirements document, annotated on the item itself:
+
+```markdown
+## Done when
+
+1. `/last` prints `<tab>: <text>` for the focused tab.
+2. **WAIVED (2026-03-04, Mighty)** — "Stays responsive with 10k-message tabs."
+   Unobservable by an agent (long-duration interactive performance).
+   **Substitute**: `bench/last-seek.sh` in CI; human spot-check post-merge.
+```
+
+Document header records the count: `**Waivers**: 1 of 5 (Done when #2)`.
+
+Waived items are **listed in the PR description** with reason and substitute —
+same principle as auto-approved defaults. The human sees the decision after the
+fact even if they did not examine it before.
+
+### With no waivers
+
+If a requirements document exists with status `approved` or `auto-approved`,
+run the gate on every non-waived item. The gate is gated by the artifact, not by
+confidence.
 
 Do not run it on every work unit — it verifies the feature, not the unit. Do not
-run it before the final comprehensive review — reviewing an unbuilt feature
+run it before the final comprehensive review — verifying an unsettled feature
 wastes a pass.
 
 **Position in the pipeline:**
@@ -91,6 +172,17 @@ Read the document. Check the header:
 For `auto-approved` documents, every default recorded in the flagged-issues block
 becomes a check — and every one must also appear in the PR description. Verify
 both.
+
+Read the `**Waivers**` count from the header. For each waived item:
+
+- The annotation **must** name a substitute. No substitute → not a valid waiver;
+  report it as a REQUIREMENT DEFECT and mark the item UNVERIFIABLE.
+- The substitute **must** exist and pass. Verify it like any other check.
+- A waiver granted at gate time rather than approval time **is not a waiver**.
+  Treat the item as in-scope and verify it, or report INCOMPLETE if you cannot.
+
+If every item is waived, stop: the task should not have had a requirements
+document. Report an assessment defect rather than a vacuous ACCEPTED.
 
 ---
 
@@ -133,6 +225,11 @@ Sections that are **not** checks:
   scope creep in reverse. They are context, not promises.
 - `## Notes for the design phase` — explicitly not requirements.
 - `## Scope` / header metadata — descriptive.
+
+**Waived items stay in the checklist** with verdict WAIVED — they are not
+removed. Removing them hides the fact that a promise went unobserved by the
+reviewer, and the whole point is that the decision stays visible in the report.
+Each WAIVED row names its substitute in the Evidence column.
 
 **Count the items before starting.** If the document yields no machine-checkable
 items, that is a REQUIREMENT DEFECT worth reporting: the document failed its own
@@ -199,6 +296,29 @@ If the document makes claims about what is rendered on screen, use
 description. Do this last: it needs a browser, and a text-level FAIL already
 sends the feature back.
 
+### 3f. Waiver substitutes
+
+A waiver redirects work, it does not delete it. For every item annotated
+`**WAIVED**`, verify the named substitute instead of the behaviour:
+
+| Substitute named | How to verify |
+| --- | --- |
+| A test or benchmark | Run it; confirm it passes |
+| A human post-merge checklist | Confirm the checklist exists and is referenced in the PR |
+| A staging-only probe | Run the probe, if the environment is reachable |
+| A monitored production signal | Confirm the alert/dashboard exists and covers the behaviour |
+
+Verdict is **WAIVED** with the substitute outcome as evidence:
+
+```markdown
+| 5 | Done when | Stays responsive with 10k-message tabs | WAIVED | substitute:
+`bench/last-seek.sh` run, 42ms mean over 10k msgs (budget 100ms) |
+```
+
+If the substitute **fails**, that is a FAIL — the waiver was granted on the
+condition that the substitute holds. If the substitute **does not exist**, that
+is a REQUIREMENT DEFECT (an invalid waiver), and the item is UNVERIFIABLE.
+
 ---
 
 ## Step 4: Classify findings honestly
@@ -226,16 +346,22 @@ failure the frozen baseline was built to prevent.
 
 ## Step 5: Report the verdict
 
-Follow the output format in `rubrics/acceptance-review-rubric.md`. Three
+Follow the output format in `rubrics/acceptance-review-rubric.md`. Four
 possible verdicts:
 
 | Verdict | Condition | Next step |
 | --- | --- | --- |
 | **ACCEPTED** | Every item PASS | Proceed to `self-reflect` and PR |
+| **ACCEPTED (with waivers)** | Every non-waived item PASS, every waived item's substitute verified | Proceed to `self-reflect` and PR |
 | **REJECTED** | One or more item FAIL | Return defects to implementation |
 | **INCOMPLETE** | No FAIL, but one or more UNVERIFIABLE | Human decision required |
 
-There is no ACCEPTED with caveats.
+There is no ACCEPTED with caveats. Waivers are not caveats: a waived item has a
+verified substitute, so something was checked. An item with nothing checked is
+UNVERIFIABLE, which is INCOMPLETE.
+
+Report waived items explicitly even on success — `**Waived**: 1 of 17 (Done when
+#2, substitute verified)`. The waived count travels into the PR description.
 
 ### On REJECTED
 
@@ -374,3 +500,8 @@ pipeline spends most of its design effort avoiding — pointed the other way.
 | 10 | Running before final comprehensive review | Verifies a feature that may still change | After final review, before self-reflect |
 | 11 | Inferring behaviour from source when the system won't start | Silent degradation to a code read, reported as a pass | Report INCOMPLETE with the blocker |
 | 12 | Bundling requirement defects with FAILs | Buries a bad promise as an implementation bug | Separate section, human decision |
+| 13 | Waiving at gate time instead of approval time | The decision lands with sunk cost and an agent that wants to be done | Waivers are granted when the human approves requirements |
+| 14 | Waiving the whole gate | One unobservable item does not waive the other sixteen; all-waived means the task was mis-assessed | Waive per item, report an assessment defect instead |
+| 15 | Waiving to an absence | A waived item with no named substitute is an unchecked promise | Every waiver names the evidence that stands in |
+| 16 | Treating a blocker as a waiver | "No staging URL" and "no credentials" are solvable, not impossible | INCOMPLETE, escalate; never waive |
+| 17 | Skipping the substitute check | A waiver redirects work, it does not delete it | Verify the named substitute like any other check |

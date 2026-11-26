@@ -57,6 +57,7 @@ Every requirement item gets exactly one verdict:
 | **PASS** | Observed to behave as the document states | Actual output, quoted |
 | **FAIL** | Observed to behave differently | Expected vs. found, both quoted |
 | **UNVERIFIABLE** | Could not reach or exercise the behaviour | Evidence of the attempt + what would be needed |
+| **WAIVED** | Human waived it at approval time; substitute verified instead | Substitute run and its result |
 
 `UNVERIFIABLE` is not a soft FAIL and not a soft PASS. It means the check could
 not be performed, and it is reported so a human can decide — not so the reviewer
@@ -70,16 +71,75 @@ as such:
 - "The implementation looks correct" — you were not supposed to look
 - "Not tested due to time" — run it, or report the blocker
 - "Requires credentials I don't have" without stating which, and without asking
+- "Acceptance isn't possible for this kind of task" — see *Waivers* below; that
+  is a decision for the human at approval time, not for the reviewer at gate time
+
+`WAIVED` is not a fourth chance to escape. It is available only when the
+requirements document already carries a waiver annotation on the item, granted by
+the human when they approved it. **A reviewer can never create a waiver.** If the
+item is unobservable and was not waived in advance, the verdict is UNVERIFIABLE
+and the finding is that the waiver should have been requested earlier.
 
 ### Overall
 
 | Verdict | Condition |
 | --- | --- |
-| **ACCEPTED** | Every item PASS |
+| **ACCEPTED** | Every item PASS, no waivers |
+| **ACCEPTED (with waivers)** | Every non-waived item PASS; every WAIVED item's substitute verified |
 | **REJECTED** | One or more item FAIL |
 | **INCOMPLETE** | No FAIL, but one or more UNVERIFIABLE |
 
 There is no ACCEPTED with caveats. A single unobserved item is INCOMPLETE.
+Waivers are not caveats — a waived item has a verified substitute, so something
+was checked.
+
+---
+
+## Waivers
+
+Acceptance is not always possible. Some behaviour is inherently unobservable by
+an agent: physical output, a third party's system, thirty-day uptime, whether
+prose reads well, a legally accountable signature. Pretending otherwise produces
+a gate that gets quietly ignored on exactly the task types where it cannot run.
+
+So waivers exist — under four rules, all of which must hold:
+
+| # | Rule | Why |
+| --- | --- | --- |
+| 1 | **Granted at approval time**, never at gate time | At gate time there is sunk cost and an agent that wants to be done. The decision must precede the incentive. |
+| 2 | **Per item**, never per gate | One unobservable item does not waive the other sixteen. All items waived = mis-assessed task, not a gate decision. |
+| 3 | **A substitute, not an absence** | Every waiver names the evidence that stands in: a test, a benchmark, a human checklist, a production signal. |
+| 4 | **The substitute is verified** at gate time | A waiver redirects work; it does not delete it. |
+
+### What qualifies
+
+| Qualifies | Does not qualify |
+| --- | --- |
+| Physical output (print, LED, sensor) | "No staging URL right now" — Blocked, not waived |
+| Third-party system (app review, bank settlement) | "Needs credentials I don't have" — Blocked |
+| Long duration (30-day uptime, week-long soak) | "Requires the full suite, too slow" — run the suite |
+| Human judgement (prose quality, legibility) | "The agent found it confusing" — not a category |
+| Legal/compliance (signature, filing) | "Only observable in production" — point the agent at production |
+| Destructive at scale (replica loss) | "Expensive to test" — negotiate the substitute, don't waive |
+
+**The right-hand column is the important one.** Every entry there is a solvable
+blocker dressed as an impossibility. Accepting them as waivers is how this gate
+degrades into a formality.
+
+### Recording
+
+Annotated on the item in the requirements document, granted by the human at
+approval, with a named substitute:
+
+```markdown
+2. **WAIVED (2026-03-04, Mighty)** — "Stays responsive with 10k-message tabs."
+   Unobservable by an agent (long-duration interactive performance).
+   **Substitute**: `bench/last-seek.sh` in CI; human spot-check post-merge.
+```
+
+Header carries the count: `**Waivers**: 1 of 5 (Done when #2)`. Waived items are
+listed in the PR description with reason and substitute — same principle as
+auto-approved defaults.
 
 ---
 
@@ -127,6 +187,20 @@ description of it.**
 **To verify**: human supplies a local DB URL, or point the reviewer at a running environment
 ```
 
+### WAIVED
+
+```markdown
+**Item**: "Stays responsive with 10k-message tabs."
+**Verdict**: WAIVED
+**Waiver**: granted 2026-03-04 by Mighty at requirements approval; unobservable
+by an agent (long-duration interactive performance)
+**Substitute verified**: `bench/last-seek.sh` — 42ms mean across 10k messages
+(budget 100ms), exit 0
+```
+
+Note the shape: a WAIVED verdict still carries a **result**. If the substitute
+had no result, the verdict would be UNVERIFIABLE, not WAIVED.
+
 ### Invalid evidence
 
 - "Tests pass" (construction, not acceptance)
@@ -142,6 +216,8 @@ description of it.**
 The requirements document has four sections that make verifiable claims. Each
 maps to a specific verification technique. Verify all four, in this order —
 cheapest and most decisive first.
+
+Waived items are verified via their substitute (see *Waivers* above), not skipped.
 
 ### 1. What the user sees (STRONGEST — mechanical)
 
@@ -211,11 +287,17 @@ Report the counts:
 
 ```
 Items in document: N
-  PASS: A    FAIL: B    UNVERIFIABLE: C
+  PASS: A    FAIL: B    UNVERIFIABLE: C    WAIVED: D
 ```
 
 If C is large relative to N, the environment is not ready for acceptance and the
 honest verdict is INCOMPLETE — not a partial pass. Say so plainly.
+
+If D is large relative to N (say, more than a third), something else is wrong:
+the requirements document contains behaviour nobody can check. That is worth
+reporting as an assessment or requirements defect even on an ACCEPTED verdict —
+it means the pipeline is generating promises that are unverifiable by
+construction.
 
 ---
 
@@ -250,13 +332,13 @@ from the gate verdict.
 
 ### Coverage
 
-| Section | Items | PASS | FAIL | UNVERIFIABLE |
-| --- | --- | --- | --- | --- |
-| What the user sees | 6 | 6 | 0 | 0 |
-| Behaviour | 4 | 3 | 1 | 0 |
-| Constraints | 2 | 1 | 0 | 1 |
-| Done when | 5 | 5 | 0 | 0 |
-| **Total** | **17** | **15** | **1** | **1** |
+| Section | Items | PASS | FAIL | UNVERIFIABLE | WAIVED |
+| --- | --- | --- | --- | --- | --- |
+| What the user sees | 6 | 6 | 0 | 0 | 0 |
+| Behaviour | 4 | 3 | 1 | 0 | 0 |
+| Constraints | 2 | 1 | 0 | 1 | 0 |
+| Done when | 5 | 4 | 0 | 0 | 1 |
+| **Total** | **17** | **14** | **1** | **1** | **1** |
 
 ### Per-item results
 
@@ -341,7 +423,7 @@ already have a FAIL that sends the feature back.
 | **Contract** | DoD items from the plan | Requirements document |
 | **Evidence** | `file:line` | Observed output, quoted |
 | **Stance** | Auditor of code | User of the product |
-| **Verdicts** | PASS / FAIL | PASS / FAIL / UNVERIFIABLE |
+| **Verdicts** | PASS / FAIL | PASS / FAIL / UNVERIFIABLE / WAIVED |
 | **Frequency** | Every work unit | Once per Complex feature |
 | **Loops** | Up to 3 retries, fresh reviewer | No loop — return defects, re-run once |
 | **Catches** | Doesn't meet the contract | Meets the contract, breaks the promise |

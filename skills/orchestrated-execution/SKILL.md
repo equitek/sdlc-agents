@@ -712,7 +712,7 @@ git log main..HEAD --oneline
 ### Ready for PR: YES / NO
 ```
 
-## 8.4. Acceptance Gate (MANDATORY before knowledge capture)
+## 8.4. Acceptance Gate (before knowledge capture)
 
 After the final comprehensive review passes but BEFORE `self-reflect`, run the
 **Acceptance Gate** if a requirements document exists for this work.
@@ -729,7 +729,7 @@ Final review PASSED. Running acceptance against the requirements baseline...
 
 /acceptance docs/requirements/<date>-<slug>-requirements.md
 
-Verdict: ACCEPTED | REJECTED | INCOMPLETE
+Verdict: ACCEPTED | ACCEPTED (with waivers) | REJECTED | INCOMPLETE
 ```
 
 **Rules:**
@@ -737,6 +737,12 @@ Verdict: ACCEPTED | REJECTED | INCOMPLETE
 - **Gated by the artifact.** A requirements document exists → run the gate. No
   document → the task was Simple and there is nothing to verify. Do not invent
   a baseline to justify skipping; do not invent a UAT pass for a bug fix.
+- **Waivers exist, but only if the approved document already carries them.** Some
+  behaviour is unobservable by an agent (physical output, a third party's system,
+  thirty-day uptime, prose quality). The human can waive such items **at
+  requirements approval**, each with a named substitute that the reviewer then
+  verifies. An agent cannot waive anything at gate time, and a missing credential
+  or unreachable environment is a blocker (INCOMPLETE), never a waiver.
 - **Fresh reviewer.** Spawn the `qa-agent` as a new instance. Do NOT hand it the
   plan, the DoD items, the diff, or the project context document. Its only
   inputs are the requirements document and a reachable system.

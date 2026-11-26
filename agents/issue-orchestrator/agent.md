@@ -387,8 +387,18 @@ this phase does not apply — record that and proceed. Do not fabricate a baseli
 | Verdict | Action |
 | --- | --- |
 | **ACCEPTED** | Proceed to Phase 4 (PR & Merge) |
+| **ACCEPTED (with waivers)** | Proceed, listing waived items + substitutes in the PR description |
 | **REJECTED** | Defects become new work units through the normal 4-phase loop. Re-run acceptance on the failed items only, at the new commit. PR stays blocked. |
 | **INCOMPLETE** | Escalate to the human with the blocker and options. Never a soft pass. |
+
+**Waivers are not the orchestrator's call.** Some behaviour cannot be observed by
+an agent — physical output, a third party's system, thirty-day uptime, prose
+quality. Those items may be waived by the human **when they approve the
+requirements document**, each naming a substitute that the QA Agent verifies. If
+the approved document carries no waiver annotation, the item is in scope: verify
+it or report INCOMPLETE. An unreachable environment or a missing credential is a
+blocker, never a waiver. Never waive the whole document — that means the task was
+mis-assessed.
 
 A `REQUIREMENT DEFECT` (the document is wrong or self-contradictory) is **not** an
 acceptance failure and **not** the QA Agent's call — escalate it for human

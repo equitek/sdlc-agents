@@ -70,7 +70,10 @@ live in `rubrics/`; the multi-agent coordination protocol lives in
 - **Acceptance Gate**: After the final comprehensive review, a fresh `qa-agent`
   verifies the *running system* against the frozen requirements document — item
   by item, with quoted output as evidence. It never reads the diff. Verdicts are
-  ACCEPTED / REJECTED / INCOMPLETE. Load `acceptance-gate`.
+  ACCEPTED / ACCEPTED (with waivers) / REJECTED / INCOMPLETE. Items that are
+  inherently unobservable by an agent may be **waived at approval time** with a
+  named, verified substitute — never at gate time, never for a solvable blocker.
+  Load `acceptance-gate`.
 - **Coverage Gate**: Reads `.coverage-thresholds.json` and runs the
   enforcement command — BLOCKING gate before PR creation.
 
@@ -127,7 +130,14 @@ orchestration pipeline is followed regardless of which skill initiated the work.
   system and quotes the observed output. Do NOT hand it the diff, the plan, or
   the DoD items. REJECTED returns defects to implementation as normal work
   units; INCOMPLETE goes to the human with the blocker. The PR is not marked
-  ready until the verdict is ACCEPTED.
+  ready until the verdict is ACCEPTED (with or without waivers).
+
+  **Waivers are decided at requirements approval, never at gate time.** An agent
+  marks items waived only if the approved document already carries a
+  `**WAIVED**` annotation with a named substitute. No annotation → the item is
+  in scope; verify it or report INCOMPLETE. A missing credential or an
+  unreachable environment is a blocker, never a waiver. Never waive the whole
+  document — that means the task was mis-assessed.
 - **Diagnose before implementing**: For complex tasks (multi-file, non-obvious
   behavior, performance issues, anything where the root cause is unclear), add
   debug/logging statements or diagnostic tests first to confirm your

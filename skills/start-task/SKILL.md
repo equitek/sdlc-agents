@@ -166,7 +166,7 @@ When the task has a spec with Definition of Done items, use the orchestrated exe
 2. **Plan Review Gate (BLOCKING)** — submit plan to adversarial review (3 reviewers: Feasibility, Completeness, Scope & Alignment must all PASS). This gate is MANDATORY — do NOT present the plan to the user or begin implementation until all 3 reviewers PASS. See `skills/plan-review-gate/SKILL.md`
 3. **Execute** the 4-phase loop per work unit: IMPLEMENT → VALIDATE → ADVERSARIAL REVIEW → COMMIT
 4. **Final review** after all work units: cross-unit integration check
-5. **Acceptance Gate (BLOCKING)** — spawn a fresh `qa-agent` to verify the running system against the frozen requirements document. Construction review cannot tell you whether the operator got what they approved. Verdict must be ACCEPTED. See `skills/acceptance-gate/SKILL.md`
+5. **Acceptance Gate** — spawn a fresh `qa-agent` to verify the running system against the frozen requirements document. Construction review cannot tell you whether the operator got what they approved. Verdict must be ACCEPTED (with or without waivers). Items inherently unobservable by an agent are waived at requirements approval, never at gate time; blockers are INCOMPLETE, not waivers. See `skills/acceptance-gate/SKILL.md`
 6. **Self-reflect**: Run `/self-reflect` to extract learnings, then commit knowledge base updates
 7. **Create PR** — knowledge base changes are included in the PR
 
